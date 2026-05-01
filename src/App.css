@@ -1,0 +1,157 @@
+/* Reset and Base Styles */
+* {
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: 'DejaVu Sans', sans-serif, Arial;
+  overflow: hidden;
+}
+
+.app-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* Menu Scenes */
+.menu-scene {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+/* Titles */
+.title {
+  font-size: 72px;
+  font-weight: bold;
+  margin-bottom: 60px;
+  text-align: center;
+}
+
+.shadow-text {
+  text-shadow: 4px 4px 0px #000;
+}
+
+/* Buttons */
+.button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 500px;
+}
+
+.game-button {
+  background-color: #aa0000;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 20px;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0px 6px 0px #000;
+  transition: transform 0.1s, background-color 0.2s;
+  text-align: center;
+}
+
+.game-button:hover {
+  background-color: #dc2828;
+}
+
+.game-button:active {
+  transform: translateY(4px);
+  box-shadow: 0px 2px 0px #000;
+}
+
+.choice-button {
+  white-space: pre-wrap; /* Allows multiline text to wrap naturally like the PyGame function */
+}
+
+/* Audio Controls */
+.audio-controls {
+  position: absolute;
+  bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px 20px;
+  border-radius: 12px;
+}
+
+.audio-controls input[type=range] {
+  width: 300px;
+  cursor: pointer;
+}
+
+.mute-button {
+  background-color: #3c3c3c;
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.mute-button:hover {
+  background-color: #5a5a5a;
+}
+
+/* Video Scene */
+.video-scene {
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  position: relative;
+}
+
+.video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.skip-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 140px;
+  height: 50px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: 2px solid white;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.skip-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.ff-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  color: yellow;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 2px 2px 0px black;
+}
