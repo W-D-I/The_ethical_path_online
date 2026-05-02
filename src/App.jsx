@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
-import.meta.env.BASE_URL
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -11,14 +10,24 @@ const MAX_ETHICS = 6;
 export default function App() {
   // Game States
   const [gameState, setGameState] = useState('main_menu');
-  
+
+  // Warning
+  const [showRotateWarning, setShowRotateWarning] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowRotateWarning(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Player Stats
   const [scores, setScores] = useState({ career: 0, ethics: 0 });
   
   // Media States
   const [currentVideo, setCurrentVideo] = useState(null);
   const [currentChoices, setCurrentChoices] = useState([]);
-  const [onVideoEnd, setOnVideoEnd] = useState(() => () => {});
+  const [nextStep, setNextStep] = useState(() => () => {});
   
   // Audio Settings
   const [volume, setVolume] = useState(0.4);
@@ -34,9 +43,9 @@ export default function App() {
   }, [volume, isMuted]);
 
   // --- GAME FLOW LOGIC ---
-  const playVideo = (src, nextStep) => {
+  const playVideo = (src, step) => {
     setCurrentVideo(src);
-    setOnVideoEnd(() => nextStep);
+    setNextStep(() => step);
     setGameState('video');
   };
 
@@ -46,11 +55,20 @@ export default function App() {
   };
 
   const handleChoice = (videoPath, nextScene, careerIncr, ethicsIncr) => {
-    setScores(prev => ({
-      career: prev.career + careerIncr,
-      ethics: prev.ethics + ethicsIncr
-    }));
-    playVideo(videoPath, nextScene);
+    setScores(prev => {
+      const newScores = {
+        career: prev.career + careerIncr,
+        ethics: prev.ethics + ethicsIncr
+      };
+
+      if (nextScene === playEnding) {
+        playVideo(videoPath, () => playEnding(newScores));
+      } else {
+        playVideo(videoPath, nextScene);
+      }
+
+      return newScores;
+    });
   };
 
   // --- CHAPTER SCENES ---
@@ -79,101 +97,93 @@ export default function App() {
   ]);
 
   const chapter4Menu = () => showMenu([
-    { label: "No, I’ll save up and buy it. Maybe I can take on extra work.", action: () => handleChoice(`${BASE}assets/pirate2.mp4`, playEnding, 2, 0) },
-    { label: "Pirating is wrong. I’ll wait for a sale or just skip it.", action: () => handleChoice(`${BASE}assets/pirate3.mp4`, playEnding, 0, 2) },
-    { label: "I mean… everyone pirates sometimes. I probably won’t get caught.", action: () => handleChoice(`${BASE}assets/pirate1.mp4`, playEnding, 1, 1) },
+    { label: "No, I’ll save up and buy it.", action: () => handleChoice(`${BASE}assets/pirate2.mp4`, playEnding, 2, 0) },
+    { label: "Pirating is wrong.", action: () => handleChoice(`${BASE}assets/pirate3.mp4`, playEnding, 0, 2) },
+    { label: "Everyone pirates sometimes.", action: () => handleChoice(`${BASE}assets/pirate1.mp4`, playEnding, 1, 1) },
   ]);
 
   // --- ENDING LOGIC ---
-  const playEnding = () => {
-    // Current state relies on functional updates to prevent stale closures,
-    // so we evaluate scores exactly as they are right now.
-    let endingVideo = `${BASE}assets/end3.mp4`;
-    
-    if (scores.career >= MAX_CAREER || scores.career > scores.ethics) {
-      endingVideo = `${BASE}assets/evilcore.mp4`;
-    } else if (scores.ethics >= MAX_ETHICS || scores.career < scores.ethics) {
-      endingVideo = `${BASE}assets/ethical_end.mp4`;
-    }
+  const playEnding = (finalScores) => {
+    let endingVideo;
 
+    if (finalScores.career >= MAX_CAREER || finalScores.career > finalScores.ethics) {
+      endingVideo = `${BASE}assets/evilcore.mp4`;
+    } else if (finalScores.ethics >= MAX_ETHICS || finalScores.career < finalScores.ethics) {
+      endingVideo = `${BASE}assets/ethical_end.mp4`;
+    } else {
+      endingVideo = `${BASE}assets/end3.mp4`;
+    }
     playVideo(endingVideo, backToMainMenu);
   };
 
   const startGame = () => {
     setScores({ career: 0, ethics: 0 });
-
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
-
-      audioRef.current.play()
-        .then(() => {
-          // music started
-        })
-        .catch(() => {
-          // ignore autoplay block
-        });
+      audioRef.current.play().catch(() => {});
     }
-
     playIntro(); 
   };
+
   const backToMainMenu = () => {
     setGameState('main_menu');
   };
 
   // --- VIDEO CONTROLS ---
-  const handleFastForward = (isDown) => {
+  const [isFastForward, setIsFastForward] = useState(false);
+  
+  const toggleFastForward = () => {
+    if (!videoRef.current) return;
+    const newState = !isFastForward;
+    setIsFastForward(newState);
+    videoRef.current.playbackRate = newState ? 6.0 : 1.0;
+  };
+
+  const handleVideoEnd = () => {
+    setIsFastForward(false);
     if (videoRef.current) {
-      videoRef.current.playbackRate = isDown ? 6.0 : 1.0;
+      videoRef.current.playbackRate = 1.0;
     }
+    nextStep(); // Call the next part of the game
   };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (gameState === 'video') {
-        if (e.key === 'f') handleFastForward(true);
         if (e.key === ' ' || e.key === 'Escape') {
-          // Skip video
           if (videoRef.current) {
             videoRef.current.currentTime = videoRef.current.duration;
           }
         }
       }
     };
-    const handleKeyUp = (e) => {
-      if (gameState === 'video' && e.key === 'f') handleFastForward(false);
-    };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState]);
-
 
   return (
     <div className="app-container">
-      {/* Background Music */}
+      {showRotateWarning && (
+        <div className="rotate-warning">
+           If playing on mobile, rotate your device to play
+        </div>
+      )}
+      
       <audio ref={audioRef} src={`${BASE}assets/dejavu.mp3`} loop />
 
       {/* --- MAIN MENU --- */}
       {gameState === 'main_menu' && (
         <div className="menu-scene" style={{ backgroundImage: `url(${BASE}assets/bg.jpg)` }}>
           <h1 className="title shadow-text">The Ethical Path</h1>
-          
           <div className="button-container">
             <button className="game-button" onClick={startGame}>Start Game</button>
             <button className="game-button" onClick={() => alert("You can close the tab to quit!")}>Quit</button>
           </div>
-
           <div className="audio-controls">
-            <span>Music</span>
+            <span>Music Volume</span>
             <input 
-              type="range" 
-              min="0" 
-              max="1" 
-              step="0.05" 
+              type="range" min="0" max="1" step="0.05" 
               value={volume} 
               onChange={(e) => setVolume(parseFloat(e.target.value))} 
             />
@@ -192,13 +202,16 @@ export default function App() {
             src={currentVideo}
             className="video-player"
             autoPlay
-	    muted
-            onEnded={onVideoEnd}
+            onEnded={handleVideoEnd}
           />
-          <button className="skip-button" onClick={onVideoEnd}>
-            Skip ▶▶
-          </button>
-          <div className="ff-hint">Press and hold 'F' to Fast Forward</div>
+          <div className="video-overlay-controls">
+            <button className="skip-button" onClick={handleVideoEnd}>
+              Skip ▶▶
+            </button>
+            <button className="ff-button" onClick={toggleFastForward}>
+              {isFastForward ? "Normal Speed ⏸" : "FastForward ▶▶"}
+            </button>
+          </div>
         </div>
       )}
 
